@@ -1,0 +1,2 @@
+# Scale-Sentiment-Detection-In-Memes-Using-Multi-Modal-Approach
+The goal is to tackle a hot topic that emerged due to the exponential use of social media which is sentiment analysis in memes, and we will try to combine both images and text from the memes to detect the overall sentiment present ranging from “very negative - very positive” to the detection of other sentimental content (sarcasm-humor-motivational-offensive). Due to the multimodal nature of the problem, we will go through models presented in different surveys present in the litterature
