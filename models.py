@@ -16,16 +16,21 @@ class Unimodal():
         
 
 
-    def word_embedding_lstm(self,input_arr,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers,number_labels):
+    def word_embedding_lstm(self,input_arr,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers,number_labels,is_gpu_available):
         model=Sequential()
         model.add(Embedding(max_nb_words,embedding_dim,input_length=input_arr.shape[1]))
 
         number_lstm_layers=max(1,number_lstm_layers)
         for i in range(number_lstm_layers-1):
-            model.add(LSTM(100,recurrent_dropout=0.2,dropout=0.2,return_sequences=True))
+            if not is_gpu_available:
+                model.add(LSTM(100,recurrent_dropout=0.2,dropout=0.2,return_sequences=True))
+            else:
+                model.add(CuDNNLSTM(100,return_sequences=True))
             #model.add(CuDNNLSTM(100,return_sequences=True))
-        
-        model.add(LSTM(100))
+        if not is_gpu_available:
+            model.add(LSTM(100))
+        else:
+            model.add(CuDNNLSTM(100))
         for _ in range(number_dense_layers):
             model.add(Dense(64,"relu"))
             model.add(Dropout(0.2))
@@ -119,4 +124,5 @@ class Unimodal():
 
 
 class Multimodal():
+    #def 
     pass
