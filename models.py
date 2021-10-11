@@ -1,10 +1,11 @@
 import numpy as np 
 import pandas as pd 
 from keras.models import Sequential,Model
-from keras.layers import Dense,Flatten,Input,Conv2D,Conv3D,MaxPooling2D,MaxPooling3D,Embedding,CuDNNLSTM,Dropout,LSTM
+from keras.layers import Dense,Flatten,Input,Conv2D,Conv3D,MaxPooling2D,MaxPooling3D,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate
 from keras.applications.resnet import ResNet50
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
+from tensorflow.keras.utils import plot_model
 
 
 
@@ -124,5 +125,56 @@ class Unimodal():
 
 
 class Multimodal():
-    #def 
-    pass
+    def word_embedding_lstm_cnn(self,input_arr_text,input_arr_img,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
+
+        input_text=Input(shape=(None,))
+
+        x_text=Embedding(max_nb_words,embedding_dim)(input_text)
+        number_lstm_layers=max(1,number_lstm_layers)
+        for i in range(number_lstm_layers-1):
+            if not is_gpu_available:
+                x_text=LSTM(100,recurrent_dropout=0.2,dropout=0.2,return_sequences=True)(x_text)
+            else:
+                x_text=CuDNNLSTM(100,return_sequences=True)(x_text)
+            #model.add(CuDNNLSTM(100,return_sequences=True))
+        if not is_gpu_available:
+            x_text=LSTM(100)(x_text)
+        else:
+            x_text=CuDNNLSTM(100)(x_text)
+        '''for _ in range(number_dense_layers_text):
+            model.add(Dense(64,"relu"))
+            model.add(Dropout(0.2))'''
+        
+        input_cnn=Input(shape=input_arr_img.shape[1:])
+
+        for i in range(max(1,number_cnn_layers)):
+            if i==0:
+                x_img=Conv2D(number_of_filters,filter_size,activation="relu")(input_cnn)
+                x_img=MaxPooling2D(pool_size)(x_img)
+            else:
+                x_img=Conv2D(number_of_filters,filter_size,activation="relu")(x_img)
+                x_img=MaxPooling2D(pool_size)(x_img)
+
+        flatten=Flatten()(x_img)
+
+        for i in range(max(1,number_dense_layers_cnn)):
+            if i==0:
+                x_img=Dense(64,"relu")(flatten)
+            else:
+                x_img=Dense(64,"relu")(x_img)
+
+        concatenated=concatenate([x_text,x_img])
+
+        output=Dense(number_labels,"softmax")(concatenated)
+
+        model=Model([input_text,input_cnn],output)
+        
+        print(model.summary())
+        #plot_model(model, to_file='multiple_inputs.png')
+
+        model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
+        return model
+
+
+
+    #pass

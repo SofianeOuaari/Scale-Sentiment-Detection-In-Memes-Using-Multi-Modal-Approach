@@ -144,11 +144,15 @@ def preprocess_text(text,max_nb_words,max_length,file_tokenizer_name):
     #tokenizer=load_keras_tokenizer("keras_text_tokenizer.pickle")
 
     str_transform=lambda x:str(x)
-    text=str_transform(text)
+    print(text.shape)
+    #text=str_transform(text)
+
+    print(text.shape)
 
     tokenizer=create_save_keras_tokenizer(text,max_nb_words,file_tokenizer_name)
 
     tokenized=get_tokenized_padded_text(tokenizer,text,max_length)
+    print(tokenized.shape)
 
     return tokenized,tokenizer
 
