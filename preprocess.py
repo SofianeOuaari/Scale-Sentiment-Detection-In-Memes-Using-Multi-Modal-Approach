@@ -114,6 +114,22 @@ def return_rgb_images_text(h_size,w_size):
     
     return np.array(img_df),np.array(img_name),np.array(texts),np.array(y)
 
+    
+def return_other_color_spaces(rgb_images):
+    hsv_img=[]
+    lab_img=[]
+    grey_img=[]
+    ylcrcb_img=[]
+
+    for i in rgb_images:
+        hsv_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2HSV))
+        lab_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2LAB))
+        grey_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2GRAY))
+        ylcrcb_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2YCrCb))
+
+    return np.array(hsv_img),np.array(lab_img),np.array(grey_img),np.array(ylcrcb_img)
+
+
 def save_np_array(file_name,np_array):
     with open(file_name,"wb") as f:
         np.save(f,np_array)
@@ -157,68 +173,3 @@ def preprocess_text(text,max_nb_words,max_length,file_tokenizer_name):
     return tokenized,tokenizer
 
 
-if __name__=="__main__":
-
-    '''print(tf.test.is_gpu_available())
-    print(tf.config.list_physical_devices('GPU'))'''
-    #assert False
-
-    #print(min_max_h_w())
-    #assert(False)
-
-    '''h_size,w_size,h_std,w_std=mean_h_w()
-    print(h_size)
-    print(w_size)
-    print(h_std)
-    print(w_std)'''
-
-    '''img_arr,img_name,texts,y=return_rgb_images_text(300,300)
-    print(img_arr.shape)'''
-
-    #save_np_array("img_df_label.npy",y)
-
-    '''df=pd.read_csv("memotion_dataset_7k/labels.csv")
-    df.text_corrected=df.text_corrected.apply(lambda x:str(x))
-    tokenizer=load_keras_tokenizer("keras_text_tokenizer.pickle")
-    print(len(tokenizer.word_index))
-    vocab_size=len(tokenizer.word_index)+1
-    print(tf.test.is_gpu_available())
-    #assert False
-    tokenized=get_tokenized_padded_text(tokenizer,df.text_corrected,15)
-
-    unimo=Unimodal()
-
-    print(unimo.word_embedding_lstm(tokenized,vocab_size,300,5,5,3).summary())
-    
-    encoded_label=LabelEncoder().fit_transform(df.overall_sentiment)
-    w_e_lstm=unimo.word_embedding_lstm(tokenized,vocab_size,300,5,5,5)'''
-
-    '''unimo=Unimodal()
-
-    #labels=load_np_array('img_df_label.npy')
-
-    encoded_label=LabelEncoder().fit_transform(y)
-    
-    print(encoded_label)'''
-    #w_e_lstm.fit(tokenized,encoded_label,batch_size=32,epochs=15)
-
-    '''np_load_old = np.load
-
-    # modify the default parameters of np.load
-    np.load = lambda *a,**k: np_load_old(*a, allow_pickle=True, **k)
-    img_arr=load_np_array("img_df.npy")'''
-    #print(img_arr.shape)
-
-    '''plt.imshow(img_arr[0])
-    plt.show()
-    #print(np.reshape(img_arr,(len(img_arr),500,735)))
-    #cnn_model=unimo.image_cnn_model(img_arr,2,2,5,(3,3),(2,2),number_labels=5)
-    resnet_model=unimo.image_resnet_model(img_arr,3,5)
-    vgg16_model=unimo.image_vgg16_model(img_arr,1,5)
-    vgg19_model=unimo.image_vgg19_model(img_arr,1,5)'''
-    #print(cnn_model.summary())
-
-    #cnn_model.fit(img_arr,encoded_label,batch_size=32,epochs=15,validation_split=0.25)
-    #resnet_model.fit(img_arr,encoded_label,batch_size=4,epochs=15,validation_split=0.25)
-    #vgg16_model.fit(img_arr,encoded_label,batch_size=4,epochs=15,validation_split=0.25)
-    #vgg19_model.fit(img_arr,encoded_label,batch_size=2,epochs=15,validation_split=0.25)
