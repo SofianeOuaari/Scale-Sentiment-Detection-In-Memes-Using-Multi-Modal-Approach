@@ -1,5 +1,5 @@
 import numpy as np
-from preprocess import return_rgb_images_text,preprocess_text,label_encoder
+from preprocess import return_rgb_images_text,preprocess_text,label_encoder,return_all_color_spaces
 from models import Unimodal,Multimodal
 
 
@@ -14,7 +14,7 @@ from models import Unimodal,Multimodal
 if __name__=="__main__":
 
     img_arr,img_name,texts,y=return_rgb_images_text(224,224)
-    tokenized_texts,tokenizer=preprocess_text(texts,500,25,"text_tokenizer.pickle")
+    ''''tokenized_texts,tokenizer=preprocess_text(texts,500,25,"text_tokenizer.pickle")
 
     unimo=Unimodal()
     multi_modal=Multimodal()
@@ -27,7 +27,9 @@ if __name__=="__main__":
 
     w_e_lstm=unimo.word_embedding_lstm(tokenized_texts,vocab_size,300,1,5,5,is_gpu_available=True)
 
-    w_e_lstm.fit(tokenized_texts,encoded_label,batch_size=32,epochs=15,validation_split=0.25)
+    w_e_lstm.fit(tokenized_texts,encoded_label,batch_size=32,epochs=15,validation_split=0.25)'''
+
+    hsv_img,lab_img,grey_img,ylcrcb_img=return_all_color_spaces(img_arr)
     '''multi_modal_lstm_cnn=multi_modal.word_embedding_lstm_cnn(texts,img_arr,vocab_size,300,1,1,1,3,5,(3,3),(2,2),5,True)
     print(tokenized_texts.shape)
     encoded_label=encoded_label.reshape(-1,1)

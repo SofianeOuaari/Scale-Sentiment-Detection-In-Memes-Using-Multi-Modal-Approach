@@ -115,7 +115,7 @@ def return_rgb_images_text(h_size,w_size):
     return np.array(img_df),np.array(img_name),np.array(texts),np.array(y)
 
     
-def return_other_color_spaces(rgb_images):
+def return_all_color_spaces(rgb_images):
     hsv_img=[]
     lab_img=[]
     grey_img=[]

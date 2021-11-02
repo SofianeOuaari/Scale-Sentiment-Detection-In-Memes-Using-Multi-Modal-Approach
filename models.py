@@ -174,6 +174,43 @@ class Multimodal():
 
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
         return model
+    
+
+    def cnn_multiple_color_spaces(self,img_color_spaces,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels):
+        color_inputs=[]
+        concatenated=[]
+        for color_space in img_color_spaces:
+            input_cnn=Input(shape=color_space.shape[1:])
+            color_inputs.append(input_cnn)
+            for i in range(max(1,number_cnn_layers)):
+                if i==0:
+                    x_img=Conv2D(number_of_filters,filter_size,activation="relu")(input_cnn)
+                    x_img=MaxPooling2D(pool_size)(x_img)
+                else:
+                    x_img=Conv2D(number_of_filters,filter_size,activation="relu")(x_img)
+                    x_img=MaxPooling2D(pool_size)(x_img)
+
+            flatten=Flatten()(x_img)
+
+            for i in range(max(1,number_dense_layers_cnn)):
+                if i==0:
+                    x_img=Dense(64,"relu")(flatten)
+                else:
+                    x_img=Dense(64,"relu")(x_img)
+            
+            concatenated.append(x_img)
+
+
+        output=Dense(number_labels,"softmax")(concatenated)
+
+        model=Model(color_inputs,output)
+        
+        print(model.summary())
+
+
+
+
+        #pass 
 
 
 
