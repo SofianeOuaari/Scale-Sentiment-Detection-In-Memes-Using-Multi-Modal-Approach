@@ -200,12 +200,13 @@ class Multimodal():
             
             concatenated.append(x_img)
 
-
-        output=Dense(number_labels,"softmax")(concatenated)
+        concat=concatenate(concatenated)
+        output=Dense(number_labels,"softmax")(concat)
 
         model=Model(color_inputs,output)
         
-        print(model.summary())
+        model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
+        return model
 
 
 
