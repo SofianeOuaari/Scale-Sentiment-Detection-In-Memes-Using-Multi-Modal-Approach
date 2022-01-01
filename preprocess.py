@@ -82,12 +82,13 @@ def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
     # return the resized image
     return resized
 
-def return_rgb_images_text(h_size,w_size): 
+def return_rgb_images_text(file_name,h_size,w_size): 
 
     img_df=[]
     img_name=[]
     texts=[]
-    df=pd.read_csv("memotion_dataset_7k/labels.csv")
+    #df=pd.read_csv("memotion_dataset_7k/labels.csv")
+    df=pd.read_csv(file_name)
     y=[]
     img_path="memotion_dataset_7k/images/"
     for i in range(len(df.image_name)):

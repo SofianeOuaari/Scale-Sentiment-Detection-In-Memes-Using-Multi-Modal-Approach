@@ -7,3 +7,5 @@ keras
 opencv-python
 nltk
 nlpaug
+snowballstemmer
+stop_words
