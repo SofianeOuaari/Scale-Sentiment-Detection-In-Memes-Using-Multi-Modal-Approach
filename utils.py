@@ -59,11 +59,13 @@ def clean_text(string):
 
 def change_to_three_sentiment_labels(y):
     return pd.Series(y).replace({"very_negative":"negative","very_positive":"positive"})
-def split_train_test():
+def split_train_valid_test():
     df=pd.read_csv("memotion_dataset_7k/labels.csv")
 
-    df_train,df_test=train_test_split(df,test_size=0.25)
+    df_train,df_test=train_test_split(df,test_size=0.25,stratify=df.overall_sentiment)
+    df_test,df_valid=train_test_split(df_test,test_size=0.35,stratify=df_test.overall_sentiment)
     df_train.to_csv("memotion_dataset_7k/train.csv",index=True)
+    df_valid.to_csv("memotion_dataset_7k/valid.csv",index=True)
     df_test.to_csv("memotion_dataset_7k/test.csv",index=True)
 
 def get_glove_embedding(dim,tokenizer,input_length):
@@ -113,7 +115,7 @@ def augment_text(text):
     print(texts)
     return texts
 
-def augment_dataset(img_arr,img_name,texts,y):
+def augment_dataset(img_arr,img_name,texts,y,augment_text_only=False):
     img_arr_aug,img_name_aug,texts_aug,y_aug=[],[],[],[]
     
 
@@ -121,7 +123,8 @@ def augment_dataset(img_arr,img_name,texts,y):
         (h, w) = i_arr.shape[:2]
         (cX, cY) = (w // 2, h // 2)
         generated_texts=augment_text(text)
-        img_arr_aug.append(i_arr)
+        if not augment_text_only:
+            img_arr_aug.append(i_arr)
         img_name_aug.append(i_name)
         texts_aug.append(text)
         y_aug.append(label)
@@ -130,15 +133,23 @@ def augment_dataset(img_arr,img_name,texts,y):
             texts_aug.append(t)
             img_name_aug.append(i_name)
             y_aug.append(label)
-            angle=np.random.randint(15,270)
-    
-            M = cv2.getRotationMatrix2D((cX, cY),angle, 1.0)
-            rotated = cv2.warpAffine(i_arr, M, (w, h))
-            img_arr_aug.append(rotated)
 
-            
-            print(rotated.shape)
+            if not augment_text_only:
+                angle=np.random.randint(15,270)
+        
+                M = cv2.getRotationMatrix2D((cX, cY),angle, 1.0)
+                rotated = cv2.warpAffine(i_arr, M, (w, h))
+                img_arr_aug.append(rotated)
 
-    return np.array(img_arr_aug).astype("float32")/255,np.array(img_name_aug),np.array(texts_aug),np.array(y_aug)
+                
+                print(rotated.shape)
+                '''plt.imshow(rotated)
+                plt.show()'''
+
+    return np.array(img_arr_aug),np.array(img_name_aug),np.array(texts_aug),np.array(y_aug)
 
 
+
+if __name__=="__main__":
+    #augment_text("Hello How are you my friends, today I will present an important lecture about dynamic compounds")
+    split_train_valid_test()
