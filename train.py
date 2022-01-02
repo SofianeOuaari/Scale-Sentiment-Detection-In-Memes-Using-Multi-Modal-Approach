@@ -85,7 +85,8 @@ if __name__=="__main__":
     multi_modal=Multimodal()
     print(texts.shape)
 
-    text_autoencoder,img_autoencoder=multi_modal.text_image_autoencoder(tokenizer,np.array(tokenized_texts),img_arr,vocab_size,300,1,1,1,3,5,(3,3),(2,2),3,False)
+    #text_autoencoder,img_autoencoder=multi_modal.text_image_autoencoder(tokenizer,np.array(tokenized_texts),img_arr,vocab_size,300,1,1,1,3,5,(3,3),(2,2),3,False)
+    bimodal_autoencoder=multi_modal.text_image_autoencoder(tokenizer,np.array(tokenized_texts),img_arr,vocab_size,300,1,1,1,3,5,(3,3),(2,2),3,False)
 
 
 

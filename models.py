@@ -224,17 +224,13 @@ class Multimodal():
         encoded_h4 = Dense(256, activation='tanh')(encoded_h3)
         encoded_h5 = Dense(128, activation='tanh')(encoded_h4)
         latent = Dense(64, activation='tanh')(encoded_h5)
-        decoder_h1 = Dense(128, activation='tanh')(latent)
-        decoder_h2 = Dense(256, activation='tanh')(decoder_h1)
-        decoder_h3 = Dense(256, activation='tanh')(decoder_h2)
-        decoder_h4 = Dense(512, activation='tanh')(decoder_h3)
-        decoder_h5 = Dense(512, activation='tanh')(decoder_h4)
+        text_latent_dim=K.int_shape(latent)[1:]
+        latent=Flatten()(latent)
+        
 
-        output = Dense(100, activation='tanh')(decoder_h5)
+        '''autoencoder = Model(input_i,output)
 
-        autoencoder_text = Model(input_i,output)
-
-        autoencoder_text.compile('adadelta','mse')
+        autoencoder.compile('adadelta','mse')'''
 
 
         ###### Image Encoding ######
@@ -257,8 +253,29 @@ class Multimodal():
         enc_h,enc_w,enc_channel=K.int_shape(encoded)[1:]
         encoded=Flatten()(encoded)
         #assert False
-        encoded=Reshape((enc_h,enc_w,enc_channel))(encoded)
 
+        bimodal_latent=concatenate([latent,encoded])
+
+
+
+
+
+        ### Text Decoding
+        decoder=Dense(text_latent_dim[0]*text_latent_dim[1])(bimodal_latent)
+        decoder=Reshape((text_latent_dim[0],text_latent_dim[1]))(decoder)
+        decoder_h1 = Dense(128, activation='tanh')(decoder)
+        decoder_h2 = Dense(256, activation='tanh')(decoder_h1)
+        decoder_h3 = Dense(256, activation='tanh')(decoder_h2)
+        decoder_h4 = Dense(512, activation='tanh')(decoder_h3)
+        decoder_h5 = Dense(512, activation='tanh')(decoder_h4)
+
+        output = Dense(100, activation='tanh')(decoder_h5)
+
+        ### Image Decoding
+
+        encoded=Dense(enc_h*enc_w*enc_channel,activation="relu")(bimodal_latent)
+        
+        encoded=Reshape((enc_h,enc_w,enc_channel))(encoded)
         x = Conv2D(16, (3, 3), padding='same')(encoded)
         x = BatchNormalization()(x)
         x = Activation('relu')(x)
@@ -275,13 +292,21 @@ class Multimodal():
         x = BatchNormalization()(x)
         decoded = Activation('sigmoid')(x)
 
-        autoencoder_img = Model(input_img, decoded)
-        autoencoder_img.compile(optimizer='adam', loss='binary_crossentropy')
+        '''autoencoder_img = Model(input_img, decoded)
+        autoencoder_img.compile(optimizer='adam', loss='binary_crossentropy')'''
+        bimodal_autoencoder=Model([input_i,input_img],[output,decoded])
+        bimodal_autoencoder.compile("adadelta","mse")
 
-        autoencoder_text.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
-        autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
-        print(autoencoder_img.summary())
+        print(bimodal_autoencoder.summary())
 
-        return autoencoder_img
+
+        #emb.fit(input_arr_text,epochs=10,batch_size=256)
+        #autoencoder.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
+        '''autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
+        print(autoencoder_img.summary())'''
+        bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img])
+
+        #return autoencoder_img
+        return bimodal_autoencoder
 
 
