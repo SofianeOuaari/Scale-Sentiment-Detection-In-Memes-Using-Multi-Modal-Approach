@@ -1,5 +1,5 @@
 from models import Unimodal
-from utils import load_keras_tokenizer,load_np_array
+from utils import load_keras_tokenizer,load_np_array,clean_text
 import os
 import pickle
 import numpy as np 
@@ -103,17 +103,18 @@ def return_rgb_images_text(file_name,h_size,w_size):
             img_arr=cv2.cvtColor(img_arr,cv2.COLOR_BGR2RGB)
             img_arr=image_resize(img_arr,width=w_size,height=h_size)
             print(img_arr.shape)
-            img_df.append(img_arr)
+            
             img_name.append(df.image_name.iloc[i])
-            texts.append(df.text_corrected.iloc[i])
+            texts.append(clean_text(df.text_corrected.iloc[i]))
             y.append(df.overall_sentiment.iloc[i])
+            img_df.append(img_arr)
             print(img_file_name)
         except Exception as e: 
             print(e)
             #assert False
             pass
     
-    return np.array(img_df),np.array(img_name),np.array(texts),np.array(y)
+    return np.array(img_df).astype("float32")/255,np.array(img_name),np.array(texts),np.array(y)
 
     
 def return_all_color_spaces(rgb_images):
@@ -172,5 +173,7 @@ def preprocess_text(text,max_nb_words,max_length,file_tokenizer_name):
     print(tokenized.shape)
 
     return tokenized,tokenizer
+
+
 
 
