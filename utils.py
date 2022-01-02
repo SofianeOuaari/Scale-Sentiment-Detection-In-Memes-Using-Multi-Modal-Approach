@@ -4,6 +4,7 @@ import re
 import numpy as np 
 import pandas as pd 
 import matplotlib.pyplot as plt
+import cv2
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -95,11 +96,11 @@ def get_glove_embedding(dim,tokenizer,input_length):
 def augment_text(text):
     TOPK=20 #default=100
     ACT = 'insert' #"substitute"
-    nltk.download('averaged_perceptron_tagger')
+    '''nltk.download('averaged_perceptron_tagger')
     nltk.download('wordnet')
-    nltk.download('omw-1.4')
+    nltk.download('omw-1.4')'''
 
-    aug_syn = naw.SynonymAug(aug_src='wordnet',aug_max=3)
+    aug_syn = naw.SynonymAug(aug_src='wordnet',aug_max=5)
     #aug_bert = naw.ContextualWordEmbsAug(
     #model_path='distilbert-base-uncased',action=ACT, top_k=TOPK)
     '''aug_w2v = naw.WordEmbsAug(
@@ -107,12 +108,37 @@ def augment_text(text):
     action="substitute")'''
     #aug=naf.Sequential([aug_syn,aug_bert])
     #texts=aug.augment(text,n=10)
-    texts=aug_syn.augment(clean_text(text),n=5)
+    texts=aug_syn.augment(clean_text(text),n=2)
 
     print(texts)
+    return texts
+
+def augment_dataset(img_arr,img_name,texts,y):
+    img_arr_aug,img_name_aug,texts_aug,y_aug=[],[],[],[]
+    
+
+    for i_arr,i_name,text,label in zip(img_arr,img_name,texts,y):
+        (h, w) = i_arr.shape[:2]
+        (cX, cY) = (w // 2, h // 2)
+        generated_texts=augment_text(text)
+        img_arr_aug.append(i_arr)
+        img_name_aug.append(i_name)
+        texts_aug.append(text)
+        y_aug.append(label)
+
+        for t in generated_texts: 
+            texts_aug.append(t)
+            img_name_aug.append(i_name)
+            y_aug.append(label)
+            angle=np.random.randint(15,270)
+    
+            M = cv2.getRotationMatrix2D((cX, cY),angle, 1.0)
+            rotated = cv2.warpAffine(i_arr, M, (w, h))
+            img_arr_aug.append(rotated)
+
+            
+            print(rotated.shape)
+
+    return np.array(img_arr_aug).astype("float32")/255,np.array(img_name_aug),np.array(texts_aug),np.array(y_aug)
 
 
-
-if __name__=="__main__":
-    #augment_text("Hello How are you my friends, today I will present an important lecture about dynamic compounds")
-    split_train_test()
