@@ -1,11 +1,13 @@
 import numpy as np 
 import pandas as pd 
+from keras import backend as K
 from keras.models import Sequential,Model
-from keras.layers import Dense,Flatten,Input,Conv2D,Conv3D,MaxPooling2D,MaxPooling3D,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate
+from keras.layers import Dense,Flatten,Input,Conv2D,UpSampling2D,Conv3D,MaxPooling2D,MaxPooling3D,BatchNormalization,Activation,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate,Reshape
 from keras.applications.resnet import ResNet50
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
 from tensorflow.keras.utils import plot_model
+from utils import get_glove_embedding
 
 
 
@@ -24,10 +26,9 @@ class Unimodal():
         number_lstm_layers=max(1,number_lstm_layers)
         for i in range(number_lstm_layers-1):
             if not is_gpu_available:
-                model.add(LSTM(100,recurrent_dropout=0.2,dropout=0.2,return_sequences=True))
+                model.add(LSTM(15,recurrent_dropout=0.2,dropout=0.2,return_sequences=True))
             else:
                 model.add(CuDNNLSTM(100,return_sequences=True))
-            #model.add(CuDNNLSTM(100,return_sequences=True))
         if not is_gpu_available:
             model.add(LSTM(100))
         else:
@@ -174,8 +175,6 @@ class Multimodal():
 
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
         return model
-    
-
     def cnn_multiple_color_spaces(self,img_color_spaces,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels):
         color_inputs=[]
         concatenated=[]
@@ -208,11 +207,81 @@ class Multimodal():
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
         return model
 
+    def text_image_autoencoder(self,tokenizer,input_arr_text,input_arr_img,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
+        ####### Input Variables ######
+
+        emb=get_glove_embedding(100,tokenizer,input_arr_text.shape[1])
+        X_embedded = emb.predict(input_arr_text)
+
+        
+        ###### Text Encoding ######
+        
+        
+        input_i = Input(shape=(input_arr_text.shape[1],100))
+        encoded_h1 = Dense(512, activation='tanh')(input_i)
+        encoded_h2 = Dense(512, activation='tanh')(encoded_h1)
+        encoded_h3 = Dense(256, activation='tanh')(encoded_h2)
+        encoded_h4 = Dense(256, activation='tanh')(encoded_h3)
+        encoded_h5 = Dense(128, activation='tanh')(encoded_h4)
+        latent = Dense(64, activation='tanh')(encoded_h5)
+        decoder_h1 = Dense(128, activation='tanh')(latent)
+        decoder_h2 = Dense(256, activation='tanh')(decoder_h1)
+        decoder_h3 = Dense(256, activation='tanh')(decoder_h2)
+        decoder_h4 = Dense(512, activation='tanh')(decoder_h3)
+        decoder_h5 = Dense(512, activation='tanh')(decoder_h4)
+
+        output = Dense(100, activation='tanh')(decoder_h5)
+
+        autoencoder_text = Model(input_i,output)
+
+        autoencoder_text.compile('adadelta','mse')
 
 
+        ###### Image Encoding ######
+        input_arr_img=input_arr_img.astype("float32")/255
 
-        #pass 
+        input_img = Input(shape=input_arr_img.shape[1:])
+        
+        x = Conv2D(64, (3, 3), padding='same')(input_img)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = MaxPooling2D((2, 2), padding='same')(x)
+        x = Conv2D(32, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = MaxPooling2D((2, 2), padding='same')(x)
+        x = Conv2D(16, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        encoded = MaxPooling2D((2, 2), padding='same')(x)
+        enc_h,enc_w,enc_channel=K.int_shape(encoded)[1:]
+        encoded=Flatten()(encoded)
+        #assert False
+        encoded=Reshape((enc_h,enc_w,enc_channel))(encoded)
+
+        x = Conv2D(16, (3, 3), padding='same')(encoded)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = Conv2D(32, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = Conv2D(64, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = Conv2D(3, (3, 3), padding='same')(x)
+        x = BatchNormalization()(x)
+        decoded = Activation('sigmoid')(x)
+
+        autoencoder_img = Model(input_img, decoded)
+        autoencoder_img.compile(optimizer='adam', loss='binary_crossentropy')
+
+        autoencoder_text.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
+        autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
+        print(autoencoder_img.summary())
+
+        return autoencoder_img
 
 
-
-    #pass
