@@ -123,13 +123,15 @@ def return_all_color_spaces(rgb_images):
     grey_img=[]
     ylcrcb_img=[]
 
+    batch_size,height,width,channels=rgb_images.shape
+
     for i in rgb_images:
         hsv_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2HSV))
         lab_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2LAB))
         grey_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2GRAY))
         ylcrcb_img.append(cv2.cvtColor(i,cv2.COLOR_RGB2YCrCb))
 
-    return np.array(hsv_img),np.array(lab_img),np.array(grey_img),np.array(ylcrcb_img)
+    return np.array(hsv_img),np.array(lab_img),np.array(grey_img).reshape(-1,height,width,1),np.array(ylcrcb_img)
 
 
 def save_np_array(file_name,np_array):
