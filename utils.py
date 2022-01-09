@@ -57,6 +57,25 @@ def clean_text(string):
             
     return cleaned
 
+
+def plot_color_spaces(hsv_img,lab_img,grey_img,ylcrcb_img):
+    print(plt.cm.cmap_d.keys())
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    hsv = plt.cm.get_cmap('hsv')
+    ax1.imshow(hsv_img,cmap=hsv)
+    
+    ax1.set_title("HSV")
+    ax2.imshow(lab_img)
+    ax2.set_title("LAB")
+    ax3.imshow(grey_img,cmap=plt.cm.gray)
+    ax3.set_title("GRAY")
+    ax4.imshow(ylcrcb_img)
+    ax4.set_title("YlCrCb")
+
+    plt.show()
+
+
+
 def change_to_three_sentiment_labels(y):
     return pd.Series(y).replace({"very_negative":"negative","very_positive":"positive"})
 def split_train_valid_test():
