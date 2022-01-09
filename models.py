@@ -298,4 +298,64 @@ class Multimodal():
         return bimodal_autoencoder,bimodal_latent
     
 
-    
+    def text_image_residual_network(self,tokenizer,input_arr_text,input_arr_img,labels,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
+
+        emb=get_glove_embedding(100,tokenizer,input_arr_text.shape[1])
+        X_embedded = emb.predict(input_arr_text)
+
+        input_i = Input(shape=(input_arr_text.shape[1],100))
+
+        x_text=LSTM(64,return_sequences=True)(input_i)
+        x_text=LSTM(64)(x_text)
+        x_text=Dense(64,activation="tanh")(x_text)
+
+        input_arr_img=input_arr_img.astype("float32")/255
+
+        input_img = Input(shape=input_arr_img.shape[1:])
+
+        x_img = Conv2D(64, (3, 3), padding='same')(input_img)
+        x_img = BatchNormalization()(x_img)
+        x_img = Activation('relu')(x_img)
+        x_img = MaxPooling2D((2, 2), padding='same')(x_img)
+        x_img = Conv2D(32, (3, 3), padding='same')(x_img)
+        x_img = BatchNormalization()(x_img)
+        x_img = Activation('relu')(x_img)
+        x_img = MaxPooling2D((2, 2), padding='same')(x_img)
+        x_img = Conv2D(16, (3, 3), padding='same')(x_img)
+        x_img = BatchNormalization()(x_img)
+        x_img = Activation('relu')(x_img)
+        x_img=Flatten()(x_img)
+        x_img=Dense(64,activation="tanh")(x_img)
+
+        block_multip=multiply([x_text,x_img])
+
+        x_block=add([x_text,block_multip])
+
+        x_text=Dense(64,"tanh")(x_block)
+
+        x_img=Dense(64,"tanh")(x_img)
+        x_img=Dense(64,"tanh")(x_img)
+
+        block_multip=multiply([x_text,x_img])
+
+        x_block=add([x_block,block_multip])
+
+        x_text=Dense(64,"tanh")(x_block)
+
+        x_img=Dense(64,"tanh")(x_img)
+        x_img=Dense(64,"tanh")(x_img)
+
+        block_multip=multiply([x_text,x_img])
+
+        output=Dense(number_labels,"softmax")(block_multip)
+
+
+        residual_network=Model([input_i,input_img],output)
+        residual_network.compile(optimizer="adadelta",loss="sparse_categorical_crossentropy",metrics=["accuracy"])
+
+        print(residual_network.summary())
+
+        residual_network.fit([X_embedded,input_arr_img],labels,epochs=10)
+
+
+        return residual_network
