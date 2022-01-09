@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd 
 from keras import backend as K
 from keras.models import Sequential,Model
-from keras.layers import Dense,Flatten,Input,Conv2D,UpSampling2D,Conv3D,MaxPooling2D,MaxPooling3D,BatchNormalization,Activation,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate,Reshape
+from keras.layers import Dense,Flatten,Input,Conv2D,UpSampling2D,Conv3D,MaxPooling2D,MaxPooling3D,BatchNormalization,Activation,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate,add,Reshape,multiply
 from keras.applications.resnet import ResNet50
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
@@ -228,9 +228,6 @@ class Multimodal():
         latent=Flatten()(latent)
         
 
-        '''autoencoder = Model(input_i,output)
-
-        autoencoder.compile('adadelta','mse')'''
 
 
         ###### Image Encoding ######
@@ -252,7 +249,6 @@ class Multimodal():
         encoded = MaxPooling2D((2, 2), padding='same')(x)
         enc_h,enc_w,enc_channel=K.int_shape(encoded)[1:]
         encoded=Flatten()(encoded)
-        #assert False
 
         bimodal_latent=concatenate([latent,encoded])
 
@@ -260,7 +256,6 @@ class Multimodal():
 
 
 
-        ### Text Decoding
         decoder=Dense(text_latent_dim[0]*text_latent_dim[1])(bimodal_latent)
         decoder=Reshape((text_latent_dim[0],text_latent_dim[1]))(decoder)
         decoder_h1 = Dense(128, activation='tanh')(decoder)
@@ -292,21 +287,15 @@ class Multimodal():
         x = BatchNormalization()(x)
         decoded = Activation('sigmoid')(x)
 
-        '''autoencoder_img = Model(input_img, decoded)
-        autoencoder_img.compile(optimizer='adam', loss='binary_crossentropy')'''
         bimodal_autoencoder=Model([input_i,input_img],[output,decoded])
         bimodal_autoencoder.compile("adadelta","mse")
 
         print(bimodal_autoencoder.summary())
 
-
-        #emb.fit(input_arr_text,epochs=10,batch_size=256)
-        #autoencoder.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
-        '''autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
-        print(autoencoder_img.summary())'''
         bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img])
 
-        #return autoencoder_img
-        return bimodal_autoencoder
+        
+        return bimodal_autoencoder,bimodal_latent
+    
 
-
+    
