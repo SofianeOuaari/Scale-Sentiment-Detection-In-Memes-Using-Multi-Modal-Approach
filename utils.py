@@ -1,4 +1,4 @@
-import os
+import os,codecs
 import pickle
 import re
 import numpy as np 
@@ -57,25 +57,6 @@ def clean_text(string):
             
     return cleaned
 
-
-def plot_color_spaces(hsv_img,lab_img,grey_img,ylcrcb_img):
-    print(plt.cm.cmap_d.keys())
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-    hsv = plt.cm.get_cmap('hsv')
-    ax1.imshow(hsv_img,cmap=hsv)
-    
-    ax1.set_title("HSV")
-    ax2.imshow(lab_img)
-    ax2.set_title("LAB")
-    ax3.imshow(grey_img,cmap=plt.cm.gray)
-    ax3.set_title("GRAY")
-    ax4.imshow(ylcrcb_img)
-    ax4.set_title("YlCrCb")
-
-    plt.show()
-
-
-
 def change_to_three_sentiment_labels(y):
     return pd.Series(y).replace({"very_negative":"negative","very_positive":"positive"})
 def split_train_valid_test():
@@ -87,7 +68,7 @@ def split_train_valid_test():
     df_valid.to_csv("memotion_dataset_7k/valid.csv",index=True)
     df_test.to_csv("memotion_dataset_7k/test.csv",index=True)
 
-def get_glove_embedding(dim,tokenizer,input_length):
+def get_glove_embedding_glove(dim,tokenizer,input_length):
     embeddings_index = {}
     word_index = tokenizer.word_index
     f = open(os.path.join("gloves", f'glove.6B.{dim}d.txt'), encoding="utf8")
@@ -111,8 +92,53 @@ def get_glove_embedding(dim,tokenizer,input_length):
     model_emb.add(embedding_layer)
     model_emb.compile('rmsprop', 'mse')
     return model_emb
-    
 
+def get_glove_embedding_fasttext(tokenizer,input_length):
+    embeddings_index = {}
+    dim=300
+    word_index = tokenizer.word_index
+    f = codecs.open(os.path.join("fasttext",'wiki.simple.vec'), errors = 'ignore',encoding="utf8")
+    for line in f:
+        try:
+            values = line.split()
+            word = values[0]
+            #print(values[1:])
+            coefs = np.asarray(values[1:], dtype='float32')
+            embeddings_index[word] = coefs
+        except Exception as e:
+            print(e)
+            pass
+    f.close()
+
+    print('Found %s word vectors.' % len(embeddings_index))
+    embedding_matrix = np.zeros((len(word_index) + 1, dim))
+    for word, i in word_index.items():
+        embedding_vector = embeddings_index.get(word)
+        if embedding_vector is not None:
+            embedding_matrix[i] = embedding_vector
+
+    model_emb = Sequential()
+    embedding_layer = Embedding(len(word_index) + 1,dim,weights=[embedding_matrix],input_length=input_length,trainable=False)
+
+    model_emb.add(embedding_layer)
+    model_emb.compile('rmsprop', 'mse')
+    return model_emb
+    
+def plot_color_spaces(hsv_img,lab_img,grey_img,ylcrcb_img):
+    print(plt.cm.cmap_d.keys())
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    hsv = plt.cm.get_cmap('hsv')
+    ax1.imshow(hsv_img,cmap=hsv)
+    
+    ax1.set_title("HSV")
+    ax2.imshow(lab_img)
+    ax2.set_title("LAB")
+    ax3.imshow(grey_img,cmap=plt.cm.gray)
+    ax3.set_title("GRAY")
+    ax4.imshow(ylcrcb_img)
+    ax4.set_title("YlCrCb")
+
+    plt.show()
 
 def augment_text(text):
     TOPK=20 #default=100
