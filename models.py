@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd 
 from keras import backend as K
 from keras.models import Sequential,Model
-from keras.layers import Dense,Flatten,Input,Conv2D,UpSampling2D,Conv3D,MaxPooling2D,MaxPooling3D,BatchNormalization,Activation,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate,add,Reshape,multiply
+from keras.layers import Dense,Flatten,Input,Conv2D,UpSampling2D,Conv3D,MaxPooling2D,MaxPooling3D,BatchNormalization,Activation,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate,add,Reshape,multiply,average
 from keras.applications.resnet import ResNet50
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
 from tensorflow.keras.utils import plot_model
-from utils import get_glove_embedding
+from utils import get_glove_embedding_glove,get_glove_embedding_fasttext
 
 
 
@@ -210,7 +210,7 @@ class Multimodal():
     def text_image_autoencoder(self,tokenizer,input_arr_text,input_arr_img,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
         ####### Input Variables ######
 
-        emb=get_glove_embedding(100,tokenizer,input_arr_text.shape[1])
+        emb=get_glove_embedding_glove(100,tokenizer,input_arr_text.shape[1])
         X_embedded = emb.predict(input_arr_text)
 
         
@@ -228,6 +228,9 @@ class Multimodal():
         latent=Flatten()(latent)
         
 
+        '''autoencoder = Model(input_i,output)
+
+        autoencoder.compile('adadelta','mse')'''
 
 
         ###### Image Encoding ######
@@ -249,6 +252,7 @@ class Multimodal():
         encoded = MaxPooling2D((2, 2), padding='same')(x)
         enc_h,enc_w,enc_channel=K.int_shape(encoded)[1:]
         encoded=Flatten()(encoded)
+        #assert False
 
         bimodal_latent=concatenate([latent,encoded])
 
@@ -256,6 +260,7 @@ class Multimodal():
 
 
 
+        ### Text Decoding
         decoder=Dense(text_latent_dim[0]*text_latent_dim[1])(bimodal_latent)
         decoder=Reshape((text_latent_dim[0],text_latent_dim[1]))(decoder)
         decoder_h1 = Dense(128, activation='tanh')(decoder)
@@ -287,20 +292,27 @@ class Multimodal():
         x = BatchNormalization()(x)
         decoded = Activation('sigmoid')(x)
 
+        '''autoencoder_img = Model(input_img, decoded)
+        autoencoder_img.compile(optimizer='adam', loss='binary_crossentropy')'''
         bimodal_autoencoder=Model([input_i,input_img],[output,decoded])
         bimodal_autoencoder.compile("adadelta","mse")
 
         print(bimodal_autoencoder.summary())
 
+
+        #emb.fit(input_arr_text,epochs=10,batch_size=256)
+        #autoencoder.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
+        '''autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
+        print(autoencoder_img.summary())'''
         bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img])
 
-        
+        #return autoencoder_img
         return bimodal_autoencoder,bimodal_latent
     
 
     def text_image_residual_network(self,tokenizer,input_arr_text,input_arr_img,labels,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
 
-        emb=get_glove_embedding(100,tokenizer,input_arr_text.shape[1])
+        emb=get_glove_embedding_glove(100,tokenizer,input_arr_text.shape[1])
         X_embedded = emb.predict(input_arr_text)
 
         input_i = Input(shape=(input_arr_text.shape[1],100))
@@ -358,4 +370,41 @@ class Multimodal():
         residual_network.fit([X_embedded,input_arr_img],labels,epochs=10)
 
 
-        return residual_network
+
+    def lstm_multi_embedding(self,tokenizer,input_arr_text,labels,max_nb_words,number_labels,is_gpu_available):
+
+        emb_glove=get_glove_embedding_glove(300,tokenizer,input_arr_text.shape[1])
+        emb_fasttext=get_glove_embedding_fasttext(tokenizer,input_arr_text.shape[1])
+
+
+        X_embedded_glove = emb_glove.predict(input_arr_text)
+        X_embedded_ft=emb_fasttext.predict(input_arr_text) 
+
+        input_glove = Input(shape=(input_arr_text.shape[1],300))
+        x_glove=LSTM(256,return_sequences=True)(input_glove)
+        x_glove=LSTM(256)(x_glove) 
+
+        
+        input_ft = Input(shape=(input_arr_text.shape[1],300))
+        x_ft=LSTM(256,return_sequences=True)(input_ft)
+        x_ft=LSTM(256)(x_ft)
+        
+        x_avg=average([x_glove,x_ft])
+
+        x=Dense(512)(x_avg)
+        x=Dense(256)(x)
+
+        output=Dense(number_labels,"softmax")(x)
+
+        multi_embedding=Model([input_glove,input_ft],output)
+        multi_embedding.compile(optimizer="adadelta",loss="sparse_categorical_crossentropy",metrics=["accuracy"])
+
+        print(multi_embedding.summary())
+
+        multi_embedding.fit([X_embedded_glove,X_embedded_ft],labels,epochs=100,validation_split=0.25)
+
+        
+
+
+
+
