@@ -9,3 +9,5 @@ nltk
 nlpaug
 snowballstemmer
 stop_words
+gensim
+pytesseract
