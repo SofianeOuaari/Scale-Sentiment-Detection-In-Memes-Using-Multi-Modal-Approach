@@ -1,8 +1,11 @@
+from calendar import c
 import numpy as np 
 import pandas as pd 
+import time
 from keras import backend as K
 from keras.models import Sequential,Model
 from keras.layers import Dense,Flatten,Input,Conv2D,UpSampling2D,Conv3D,MaxPooling2D,MaxPooling3D,BatchNormalization,Activation,Embedding,CuDNNLSTM,Dropout,LSTM,concatenate,add,Reshape,multiply,average
+from keras.callbacks import CSVLogger,EarlyStopping,ModelCheckpoint
 from keras.applications.resnet import ResNet50
 from keras.applications.vgg16 import VGG16
 from keras.applications.vgg19 import VGG19
@@ -304,16 +307,30 @@ class Multimodal():
         #autoencoder.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
         '''autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
         print(autoencoder_img.summary())'''
-        bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img])
+        bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img],epochs=25)
 
         #return autoencoder_img
-        return bimodal_autoencoder,bimodal_latent
+        bimodal_encoder = Model([input_i,input_img], bimodal_latent)
+        return bimodal_autoencoder,bimodal_encoder
     
+    def inference_bimodal_encoder(self,tokenizer,input_arr_text,input_arr_img,bimodal_encoder):
+        emb=get_glove_embedding_glove(100,tokenizer,input_arr_text.shape[1])
+        X_embedded = emb.predict(input_arr_text)
 
-    def text_image_residual_network(self,tokenizer,input_arr_text,input_arr_img,labels,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
+        features=bimodal_encoder.predict([X_embedded,input_arr_img])
+        print(features)
+
+        return features
+
+         
+
+
+
+    def text_image_residual_network(self,tokenizer,input_arr_text,input_arr_img,labels,input_arr_text_val,input_arr_img_val,labels_val,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
 
         emb=get_glove_embedding_glove(100,tokenizer,input_arr_text.shape[1])
         X_embedded = emb.predict(input_arr_text)
+        X_embedded_val=emb.predict(input_arr_text_val)
 
         input_i = Input(shape=(input_arr_text.shape[1],100))
 
@@ -366,12 +383,15 @@ class Multimodal():
         residual_network.compile(optimizer="adadelta",loss="sparse_categorical_crossentropy",metrics=["accuracy"])
 
         print(residual_network.summary())
+        es = EarlyStopping(monitor='val_loss',patience=5)
+        csv_logger = CSVLogger(f'logs_metrics/residual_network_log_{time.time()}.csv', append=True, separator=',')
+        cp=ModelCheckpoint(filepath = "residual_network.h5")
 
-        residual_network.fit([X_embedded,input_arr_img],labels,epochs=10)
+        residual_network.fit([X_embedded,input_arr_img],labels,epochs=50,callbacks=[es,csv_logger,cp],validation_data=([X_embedded_val,input_arr_img_val],labels_val))
 
 
 
-    def lstm_multi_embedding(self,tokenizer,input_arr_text,labels,max_nb_words,number_labels,is_gpu_available):
+    def lstm_multi_embedding(self,tokenizer,input_arr_text,labels,input_arr_text_val,input_arr_img_val,labels_val,max_nb_words,number_labels,is_gpu_available):
 
         emb_glove=get_glove_embedding_glove(300,tokenizer,input_arr_text.shape[1])
         emb_fasttext=get_glove_embedding_fasttext(tokenizer,input_arr_text.shape[1])
@@ -379,6 +399,9 @@ class Multimodal():
 
         X_embedded_glove = emb_glove.predict(input_arr_text)
         X_embedded_ft=emb_fasttext.predict(input_arr_text) 
+
+        X_embedded_glove_val = emb_glove.predict(input_arr_text_val)
+        X_embedded_ft_val=emb_fasttext.predict(input_arr_text_val) 
 
         input_glove = Input(shape=(input_arr_text.shape[1],300))
         x_glove=LSTM(256,return_sequences=True)(input_glove)
@@ -401,7 +424,11 @@ class Multimodal():
 
         print(multi_embedding.summary())
 
-        multi_embedding.fit([X_embedded_glove,X_embedded_ft],labels,epochs=100,validation_split=0.25)
+        es = EarlyStopping(monitor='val_loss',patience=5)
+        csv_logger = CSVLogger(f'logs_metrics/multiembedding_network_log_{time.time()}.csv', append=True, separator=',')
+        cp=ModelCheckpoint(filepath = "multiembedding_network.h5")
+
+        multi_embedding.fit([X_embedded_glove,X_embedded_ft],labels,epochs=100,callbacks=[es,csv_logger,cp],validation_data=([X_embedded_glove_val,X_embedded_ft_val],labels_val))
 
         
 
