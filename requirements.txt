@@ -11,3 +11,5 @@ snowballstemmer
 stop_words
 gensim
 pytesseract
+snowballstemmer
+stop_words
