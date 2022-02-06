@@ -13,3 +13,4 @@ gensim
 pytesseract
 snowballstemmer
 stop_words
+plotly
