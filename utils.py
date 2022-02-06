@@ -1,5 +1,6 @@
 import os,codecs
 import pickle
+import joblib
 import re
 import numpy as np 
 import pandas as pd 
@@ -8,7 +9,7 @@ import cv2
 from sklearn.model_selection import train_test_split
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.models import Sequential
+from keras.models import Sequential,load_model
 from keras.layers import Embedding
 from keras.initializers import Constant
 import nltk
@@ -31,6 +32,20 @@ def load_keras_tokenizer(file_name):
         tokenizer = pickle.load(handle)
     
     return tokenizer
+
+def load_keras_model(file_name):
+    model=load_model(file_name)
+
+    return model
+
+
+def save_label_encoder(encoder,filename):
+    joblib.dump(encoder, filename)
+
+def load_label_encoder(filename):
+    encoder=joblib.load(filename)
+
+    return encoder
 
 
 def clean_text(string):
@@ -147,7 +162,7 @@ def augment_text(text):
     nltk.download('wordnet')
     nltk.download('omw-1.4')'''
 
-    aug_syn = naw.SynonymAug(aug_src='wordnet',aug_max=5)
+    aug_syn = naw.SynonymAug(aug_src='wordnet',aug_min=5,aug_max=15)
     #aug_bert = naw.ContextualWordEmbsAug(
     #model_path='distilbert-base-uncased',action=ACT, top_k=TOPK)
     '''aug_w2v = naw.WordEmbsAug(
@@ -155,41 +170,53 @@ def augment_text(text):
     action="substitute")'''
     #aug=naf.Sequential([aug_syn,aug_bert])
     #texts=aug.augment(text,n=10)
-    texts=aug_syn.augment(clean_text(text),n=2)
+    texts=aug_syn.augment(clean_text(text),n=3)
 
     print(texts)
     return texts
 
 def augment_dataset(img_arr,img_name,texts,y,augment_text_only=False):
     img_arr_aug,img_name_aug,texts_aug,y_aug=[],[],[],[]
+    val,counts=np.unique(y,return_counts=True)
+    d_label={}
+
+    for v,c in zip(val,counts):
+        d_label[v]=c
+
+
     
 
     for i_arr,i_name,text,label in zip(img_arr,img_name,texts,y):
         (h, w) = i_arr.shape[:2]
         (cX, cY) = (w // 2, h // 2)
-        generated_texts=augment_text(text)
-        if not augment_text_only:
-            img_arr_aug.append(i_arr)
+        
+        #if not augment_text_only:
+        img_arr_aug.append(i_arr)
         img_name_aug.append(i_name)
         texts_aug.append(text)
         y_aug.append(label)
+        if d_label[label]<max(d_label.values()):
+            generated_texts=augment_text(text)
 
-        for t in generated_texts: 
-            texts_aug.append(t)
-            img_name_aug.append(i_name)
-            y_aug.append(label)
+            for t in generated_texts: 
+                texts_aug.append(t)
+                img_name_aug.append(i_name)
+                y_aug.append(label)
 
-            if not augment_text_only:
-                angle=np.random.randint(15,270)
-        
-                M = cv2.getRotationMatrix2D((cX, cY),angle, 1.0)
-                rotated = cv2.warpAffine(i_arr, M, (w, h))
-                img_arr_aug.append(rotated)
+                if not augment_text_only:
+                    angle=np.random.randint(15,270)
+            
+                    M = cv2.getRotationMatrix2D((cX, cY),angle, 1.0)
+                    rotated = cv2.warpAffine(i_arr, M, (w, h))
+                    img_arr_aug.append(rotated)
 
-                
-                print(rotated.shape)
-                '''plt.imshow(rotated)
-                plt.show()'''
+                    
+                    print(rotated.shape)
+                    '''plt.imshow(rotated)
+                    plt.show()'''
+                else:
+                    img_arr_aug.append(i_arr)
+
 
     return np.array(img_arr_aug),np.array(img_name_aug),np.array(texts_aug),np.array(y_aug)
 
