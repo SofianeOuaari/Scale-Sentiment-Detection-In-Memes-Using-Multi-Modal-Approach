@@ -47,7 +47,15 @@ def load_label_encoder(filename):
 
     return encoder
 
+def turn_numpy_df(num_arr,y,filename):
 
+    df=pd.DataFrame(num_arr)
+    print(df.head())
+    print(df.columns)
+    df["target"]=y
+
+    df.to_csv(filename,index=False)
+    
 def clean_text(string):
     punctuations = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
     stemmer = snowballstemmer.stemmer('english');
@@ -63,7 +71,7 @@ def clean_text(string):
     res = r.sub(" ", res)
     res=res.lower()
     tokens=res.split(" ")
-    stop_words = get_stop_words('hu')
+    stop_words = get_stop_words('en')
     cleaned=""
     for token in tokens: 
         if token not in stop_words:
