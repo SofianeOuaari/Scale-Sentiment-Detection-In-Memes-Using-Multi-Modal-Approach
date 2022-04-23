@@ -1,20 +1,15 @@
 from keras_preprocessing.sequence import pad_sequences
 import numpy as np
 from preprocess import return_rgb_images_text,preprocess_text,label_encoder,return_all_color_spaces,get_tokenized_padded_text
-from models import Unimodal,Multimodal
-from keras.models import load_model
+from models import Unimodal,Multimodal,get_glove_embedding_glove,get_glove_embedding_fasttext
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.pipeline import Pipeline
-from sklearn.svm import SVC,LinearSVC
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier,VotingClassifier
-from sklearn.multiclass import OneVsOneClassifier, OneVsRestClassifier
-from sklearn.metrics import classification_report
-from xgboost import XGBClassifier
-from imblearn.over_sampling import SMOTE
-from keras.callbacks import CSVLogger,EarlyStopping
-from utils import change_to_three_sentiment_labels,augment_dataset,plot_color_spaces
+from keras.models import load_model
+from keras.callbacks import CSVLogger,EarlyStopping,ModelCheckpoint
+from pages.ssmml import sentiment_prediction_multi_emb, sentiment_prediction_residual
+from utils import change_to_three_sentiment_labels,augment_dataset,plot_color_spaces,save_label_encoder,load_keras_model,turn_numpy_df
 import matplotlib.pyplot as plt
+from pycaret.classification import *
 import time
 
 
@@ -98,40 +93,23 @@ if __name__=="__main__":
     multi_channel_color_space_cnn.fit([img_arr,hsv_img,lab_img,grey_img,ylcrcb_img],encoded_label,batch_size=8,epochs=15,validation_data=([img_arr_valid,hsv_img_val,lab_img_val,grey_img_val,ylcrcb_img_val],encoded_label_val),callbacks=[csv_logger,es])
 
 
-    ### AutoEncoders
-    #  
+    ### Saving Features from Bimodal AutoEncoders ###  
 
     bimodal_autoencoder,bimodal_latent=multi_modal.text_image_autoencoder(tokenizer,np.array(tokenized_texts),img_arr,vocab_size,300,1,1,1,3,5,(3,3),(2,2),3,False)
-    bimodal_latent.save("bimodal_latent.h5")
-    bimodal_encoder=load_model("bimodal_latent.h5")
+    bimodal_latent.save("bimodal_latent_3.h5")
+    bimodal_encoder=load_keras_model("bimodal_latent_3.h5")
     X_train_fea=multi_modal.inference_bimodal_encoder(tokenizer,np.array(tokenized_texts),img_arr,bimodal_encoder)
     X_val_fea=multi_modal.inference_bimodal_encoder(tokenizer,np.array(tokenized_val_text),img_arr_valid,bimodal_encoder)
     X_test_fea=multi_modal.inference_bimodal_encoder(tokenizer,np.array(tokenized_test_text),img_arr_test,bimodal_encoder)
-
-    #svm_model=LinearSVC(C=500)
-    #svm_model=KNeighborsClassifier(7,n_jobs=-1)
-    '''p_svm_50=Pipeline([("smote",SMOTE()),("svm_50",LinearSVC(C=50))])
-    p_svm_100=Pipeline([("smote",SMOTE()),("svm_100",LinearSVC(C=100))])
-    p_svm_500=Pipeline([("smote",SMOTE()),("svm_500",LinearSVC(C=500))])'''
-
-    #svm_model=VotingClassifier([('svm_50',LinearSVC(C=50)),('svm_100',LinearSVC(C=100)),('svm_500',LinearSVC(C=500)),('knn3',KNeighborsClassifier(3,n_jobs=-1)),('knn5',KNeighborsClassifier(5,n_jobs=-1))])
-    #svm_model=RandomForestClassifier(n_estimators=50,n_jobs=-1)
-    #svm_model=XGBClassifier(n_estimators=500,n_jobs=-1)
-    '''scaler=MinMaxScaler()
-    svm_model=LinearSVC(C=500,random_state=0)'''
-    #svm_model=GradientBoostingClassifier(n_estimators=1000)
-    #svm_model=OneVsRestClassifier(LinearSVC(C=50,random_state=0),n_jobs=-1)
+    scaler=MinMaxScaler()
     
-    #X_train_fea=scaler.fit_transform(X_train_fea)
-    '''X_train_fea_aug,y_aug=SMOTE(n_jobs=-1).fit_resample(X_train_fea,y)
-    print(len(X_train_fea_aug))
-    svm_model.fit(X_train_fea_aug,y_aug)'''
-    '''svm_model.fit(X_train_fea,y)
+    X_train_fea=scaler.fit_transform(X_train_fea)
+    X_val_fea=scaler.transform(X_val_fea)
+    X_test_fea=scaler.transform(X_test_fea)
 
-    y_pred_val=svm_model.predict(scaler.transform(X_val_fea))
-    y_pred_test=svm_model.predict(scaler.transform(X_test_fea))
-    print(classification_report(y_valid,y_pred_val))
-    print(classification_report(y_test,y_pred_test))'''
+    turn_numpy_df(X_train_fea,encoded_label,"train_latent_autoencoder_3.csv")
+    turn_numpy_df(X_val_fea,encoded_label_val,"val_latent_autoencoder_3.csv")
+    turn_numpy_df(X_test_fea,encoded_label_test,"test_latent_autoencoder_3.csv")
 
 
 
