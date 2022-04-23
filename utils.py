@@ -82,6 +82,12 @@ def clean_text(string):
 
 def change_to_three_sentiment_labels(y):
     return pd.Series(y).replace({"very_negative":"negative","very_positive":"positive"})
+
+def change_binary_classes(y_humour): 
+    y_humour.humour=y_humour.humour.replace({"not_funny":"not_humorous","funny":"humorous","very_funny":"humorous","hilarious":"humorous"})
+    y_humour.offensive=y_humour.offensive.replace({"slight":"offensive","very_offensive":"offensive","hateful_offensive":"offensive"})
+    y_humour.sarcasm=y_humour.sarcasm.replace({"general":"sarcastic","twisted_meaning":"sarcastic","very_twisted":"sarcastic"})
+    return y_humour
 def split_train_valid_test():
     df=pd.read_csv("memotion_dataset_7k/labels.csv")
 
