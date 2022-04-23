@@ -115,7 +115,40 @@ def return_rgb_images_text(file_name,h_size,w_size):
             pass
     
     return np.array(img_df).astype("float32")/255,np.array(img_name),np.array(texts),np.array(y)
+def return_rgb_images_text_humour(file_name,h_size,w_size): 
 
+    img_df=[]
+    img_name=[]
+    texts=[]
+    #df=pd.read_csv("memotion_dataset_7k/labels.csv")
+    df=pd.read_csv(file_name)
+    y=[]
+    humors=["humour","sarcasm","offensive","motivational"]
+    img_path="memotion_dataset_7k/images/"
+    for i in range(len(df.image_name)):
+
+    #for i in range(1000):
+        try:
+            
+            img_file_name=os.path.join(img_path,df.image_name.iloc[i])
+            
+            
+            img_arr=cv2.imread(img_file_name)
+            img_arr=cv2.cvtColor(img_arr,cv2.COLOR_BGR2RGB)
+            img_arr=image_resize(img_arr,width=w_size,height=h_size)
+            print(img_arr.shape)
+            
+            img_name.append(df.image_name.iloc[i])
+            texts.append(clean_text(df.text_corrected.iloc[i]))
+            y.append(df[humors].iloc[i])
+            img_df.append(img_arr)
+            print(img_file_name)
+        except Exception as e: 
+            print(e)
+            #assert False
+            pass
+    
+    return np.array(img_df).astype("float32")/255,np.array(img_name),np.array(texts),pd.DataFrame(y,columns=humors)
     
 def return_all_color_spaces(rgb_images):
     hsv_img=[]
