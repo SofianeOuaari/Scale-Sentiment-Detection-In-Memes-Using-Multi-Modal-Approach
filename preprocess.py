@@ -1,5 +1,5 @@
 from models import Unimodal
-from utils import load_keras_tokenizer,load_np_array,clean_text
+from utils import load_keras_tokenizer,load_np_array,clean_text,save_label_encoder
 import os
 import pickle
 import numpy as np 
@@ -50,6 +50,15 @@ def label_encoder(y):
     y_encoded=l_e.fit_transform(y)
 
     return y_encoded,l_e
+def label_encode_binary_humours(y,y_valid,y_test):
+    encoded_label_humour,l_e_humour=label_encoder(y.humour)
+    encoded_label_offensive,l_e_offensive=label_encoder(y.offensive)
+    encoded_label_sarcasm,l_e_sarcasm=label_encoder(y.sarcasm)
+    encoded_label_motivational,l_e_motivational=label_encoder(y.motivational)
+    save_label_encoder(l_e_humour,"label_humour_encoder.pickle")
+    save_label_encoder(l_e_offensive,"label_offensive_encoder.pickle")
+    save_label_encoder(l_e_sarcasm,"label_sarcasm_encoder.pickle")
+    save_label_encoder(l_e_motivational,"label_motivational_encoder.pickle")
 
 def image_resize(image, width = None, height = None, inter = cv2.INTER_AREA):
     # initialize the dimensions of the image to be resized and

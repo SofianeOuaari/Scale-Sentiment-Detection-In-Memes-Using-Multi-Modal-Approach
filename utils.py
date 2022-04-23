@@ -46,6 +46,8 @@ def load_label_encoder(filename):
     encoder=joblib.load(filename)
 
     return encoder
+def save_label_encoder(encoder,filename):
+    joblib.dump(encoder, filename)
 
 def turn_numpy_df(num_arr,y,filename):
 
