@@ -326,7 +326,7 @@ class Multimodal():
 
 
 
-    def text_image_residual_network(self,tokenizer,input_arr_text,input_arr_img,labels,input_arr_text_val,input_arr_img_val,labels_val,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available):
+    def text_image_residual_network(self,tokenizer,input_arr_text,input_arr_img,labels,input_arr_text_val,input_arr_img_val,labels_val,max_nb_words,embedding_dim,number_lstm_layers,number_dense_layers_text,number_dense_layers_cnn,number_cnn_layers,number_of_filters,filter_size,pool_size,number_labels,is_gpu_available,model_name):
 
         emb=get_glove_embedding_glove(100,tokenizer,input_arr_text.shape[1])
         X_embedded = emb.predict(input_arr_text)
@@ -336,58 +336,65 @@ class Multimodal():
 
         x_text=LSTM(64,return_sequences=True)(input_i)
         x_text=LSTM(64)(x_text)
-        x_text=Dense(64,activation="tanh")(x_text)
+        x_text=Dense(256,activation="tanh")(x_text)
 
         input_arr_img=input_arr_img.astype("float32")/255
 
         input_img = Input(shape=input_arr_img.shape[1:])
 
-        x_img = Conv2D(64, (3, 3), padding='same')(input_img)
+        x_img = Conv2D(64, (3, 3))(input_img)
         x_img = BatchNormalization()(x_img)
         x_img = Activation('relu')(x_img)
-        x_img = MaxPooling2D((2, 2), padding='same')(x_img)
-        x_img = Conv2D(32, (3, 3), padding='same')(x_img)
+        x_img = MaxPooling2D((2, 2))(x_img)
+        x_img = Conv2D(32, (3, 3))(x_img)
         x_img = BatchNormalization()(x_img)
         x_img = Activation('relu')(x_img)
-        x_img = MaxPooling2D((2, 2), padding='same')(x_img)
-        x_img = Conv2D(16, (3, 3), padding='same')(x_img)
+        x_img = MaxPooling2D((2, 2))(x_img)
+        x_img = Conv2D(16, (3, 3))(x_img)
         x_img = BatchNormalization()(x_img)
         x_img = Activation('relu')(x_img)
         x_img=Flatten()(x_img)
-        x_img=Dense(64,activation="tanh")(x_img)
+        x_img=Dense(256,activation="tanh")(x_img)
 
         block_multip=multiply([x_text,x_img])
 
-        x_block=add([x_text,block_multip])
+        x_block_1=add([x_text,block_multip])
 
-        x_text=Dense(64,"tanh")(x_block)
+        x_text=Dense(256,"tanh")(x_block_1)
 
-        x_img=Dense(64,"tanh")(x_img)
-        x_img=Dense(64,"tanh")(x_img)
-
-        block_multip=multiply([x_text,x_img])
-
-        x_block=add([x_block,block_multip])
-
-        x_text=Dense(64,"tanh")(x_block)
-
-        x_img=Dense(64,"tanh")(x_img)
-        x_img=Dense(64,"tanh")(x_img)
+        x_img=Dense(256,"tanh")(x_img)
+        x_img=Dense(256,"tanh")(x_img)
 
         block_multip=multiply([x_text,x_img])
 
-        output=Dense(number_labels,"softmax")(block_multip)
+        x_block_2=add([x_block_1,block_multip])
+
+        x_text=Dense(256,"tanh")(x_block_2)
+
+        x_img=Dense(256,"tanh")(x_img)
+        x_img=Dense(256,"tanh")(x_img)
+
+        block_multip=multiply([x_text,x_img])
+        x_block_3=add([x_block_2,block_multip])
+
+        output=Dense(number_labels,"softmax")(x_block_3)
 
 
         residual_network=Model([input_i,input_img],output)
         residual_network.compile(optimizer="adadelta",loss="sparse_categorical_crossentropy",metrics=["accuracy"])
 
         print(residual_network.summary())
+        #assert False 
         es = EarlyStopping(monitor='val_loss',patience=5)
         csv_logger = CSVLogger(f'logs_metrics/residual_network_log_{time.time()}.csv', append=True, separator=',')
-        cp=ModelCheckpoint(filepath = "residual_network.h5")
+        cp=ModelCheckpoint(filepath = model_name)
+        block_1 = Model([input_i,input_img], x_block_1)
+        block_2 = Model([input_i,input_img], x_block_2)
+        block_3 = Model([input_i,input_img], x_block_3)
 
-        residual_network.fit([X_embedded,input_arr_img],labels,epochs=50,callbacks=[es,csv_logger,cp],validation_data=([X_embedded_val,input_arr_img_val],labels_val))
+        residual_network.fit([X_embedded,input_arr_img],labels,epochs=25,callbacks=[es,csv_logger,cp],validation_data=([X_embedded_val,input_arr_img_val],labels_val))
+
+        return block_1,block_2,block_3
 
 
 
