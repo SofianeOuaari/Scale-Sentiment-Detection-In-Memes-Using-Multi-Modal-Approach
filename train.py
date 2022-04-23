@@ -117,7 +117,58 @@ if __name__=="__main__":
     ### Residual Multimodal Network 
 
 
-    multi_modal.text_image_residual_network(tokenizer,np.array(tokenized_texts),img_arr,encoded_label,vocab_size,300,1,1,1,3,5,(3,3),(2,2),3,False)
+    block_1,block_2,block_3=multi_modal.text_image_residual_network(tokenizer,np.array(tokenized_texts),img_arr,encoded_label,np.array(tokenized_val_text),img_arr_valid,encoded_label_val,vocab_size,300,1,1,1,3,5,(3,3),(2,2),3,False,model_name="residual_network_3.h5")
+    block_1.save("block_1_aug.h5")
+    block_2.save("block_2_aug.h5")
+    block_3.save("block_3_aug.h5")
+
+
+
+    block_1=load_keras_model("block_1_1.h5")
+    block_2=load_keras_model("block_2_1.h5")
+    block_3=load_keras_model("block_3_1.h5")
+
+    glove=get_glove_embedding_glove(100,tokenizer,np.array(tokenized_test_text).shape[1])
+    X_emb_glove=glove.predict(np.array(tokenized_texts))
+    X_emb_glove_val=glove.predict(np.array(tokenized_val_text))
+    X_emb_glove_test=glove.predict(np.array(tokenized_test_text))
+
+    fea_train_1=block_1.predict([X_emb_glove,img_arr])
+    fea_val_1=block_1.predict([X_emb_glove_val,img_arr_valid])
+    fea_test_1=block_1.predict([X_emb_glove_test,img_arr_test])
+    scaler=MinMaxScaler()
+    fea_train_1=scaler.fit_transform(fea_train_1)
+    fea_val_1=scaler.transform(fea_val_1)
+    fea_test_1=scaler.transform(fea_test_1)
+
+    turn_numpy_df(fea_train_1,encoded_label,"residual_block_1_1_train.csv")
+    turn_numpy_df(fea_val_1,encoded_label_val,"residual_block_1_1_val.csv")
+    turn_numpy_df(fea_test_1,encoded_label_test,"residual_block_1_1_test.csv")
+
+    fea_train_2=block_2.predict([X_emb_glove,img_arr])
+    fea_val_2=block_2.predict([X_emb_glove_val,img_arr_valid])
+    fea_test_2=block_2.predict([X_emb_glove_test,img_arr_test])
+    scaler=MinMaxScaler()
+    fea_train_2=scaler.fit_transform(fea_train_2)
+    fea_val_2=scaler.transform(fea_val_2)
+    fea_test_2=scaler.transform(fea_test_2)
+
+    turn_numpy_df(fea_train_2,encoded_label,"residual_block_2_1_train.csv")
+    turn_numpy_df(fea_val_2,encoded_label_val,"residual_block_2_1_val.csv")
+    turn_numpy_df(fea_test_2,encoded_label_test,"residual_block_2_1_test.csv")
+
+    fea_train_3=block_3.predict([X_emb_glove,img_arr])
+    fea_val_3=block_3.predict([X_emb_glove_val,img_arr_valid])
+    fea_test_3=block_3.predict([X_emb_glove_test,img_arr_test])
+    scaler=MinMaxScaler()
+    fea_train_3=scaler.fit_transform(fea_train_3)
+    fea_val_3=scaler.transform(fea_val_3)
+    fea_test_3=scaler.transform(fea_test_3)
+
+    turn_numpy_df(fea_train_3,encoded_label,"residual_block_3_1_train.csv")
+    turn_numpy_df(fea_val_3,encoded_label_val,"residual_block_3_1_val.csv")
+    turn_numpy_df(fea_test_3,encoded_label_test,"residual_block_3_1_test.csv")
+
 
     ### MultiEmbedding 
 
