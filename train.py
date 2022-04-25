@@ -157,23 +157,43 @@ if __name__=="__main__":
     turn_numpy_df(fea_val_2,encoded_label_val,"residual_block_2_1_val.csv")
     turn_numpy_df(fea_test_2,encoded_label_test,"residual_block_2_1_test.csv")
 
-    fea_train_3=block_3.predict([X_emb_glove,img_arr])
-    fea_val_3=block_3.predict([X_emb_glove_val,img_arr_valid])
-    fea_test_3=block_3.predict([X_emb_glove_test,img_arr_test])
-    scaler=MinMaxScaler()
-    fea_train_3=scaler.fit_transform(fea_train_3)
-    fea_val_3=scaler.transform(fea_val_3)
-    fea_test_3=scaler.transform(fea_test_3)
-
-    turn_numpy_df(fea_train_3,encoded_label,"residual_block_3_1_train.csv")
-    turn_numpy_df(fea_val_3,encoded_label_val,"residual_block_3_1_val.csv")
-    turn_numpy_df(fea_test_3,encoded_label_test,"residual_block_3_1_test.csv")
-
 
     ### MultiEmbedding 
 
 
     multi_modal.lstm_multi_embedding(tokenizer,np.array(tokenized_texts),encoded_label,vocab_size,3,False)
+
+
+    multi_modal=Multimodal()
+
+    x_emb_avg=multi_modal.lstm_multi_embedding(tokenizer,np.array(tokenized_texts),encoded_label,np.array(tokenized_val_text),img_arr_valid,encoded_label_val,vocab_size,3,False,model_name="multiembedding_network_3.h5")
+    x_emb_avg.save("x_avg_emb.h5")
+    
+    x_emb_avg=load_keras_model("x_avg_emb.h5")
+    glove=get_glove_embedding_glove(300,tokenizer,np.array(tokenized_test_text).shape[1])
+    ft=get_glove_embedding_fasttext(tokenizer,np.array(tokenized_test_text).shape[1])
+
+    X_emb_glove=glove.predict(np.array(tokenized_texts))
+    X_emb_ft=ft.predict(np.array(tokenized_texts))
+
+    X_emb_glove_val=glove.predict(np.array(tokenized_val_text))
+    X_emb_ft_val=ft.predict(np.array(tokenized_val_text))
+
+    X_emb_glove_test=glove.predict(np.array(tokenized_test_text))
+    X_emb_ft_test=ft.predict(np.array(tokenized_test_text))
+
+
+    fea_train=x_emb_avg.predict([X_emb_glove,X_emb_ft])
+    fea_val=x_emb_avg.predict([X_emb_glove_val,X_emb_ft_val])
+    fea_test=x_emb_avg.predict([X_emb_glove_test,X_emb_ft_test])
+    scaler=MinMaxScaler()
+    fea_train=scaler.fit_transform(fea_train)
+    fea_val=scaler.transform(fea_val)
+    fea_test=scaler.transform(fea_test)
+
+    turn_numpy_df(fea_train,encoded_label,"emb_avg_train.csv")
+    turn_numpy_df(fea_val,encoded_label_val,"emb_avg_val.csv")
+    turn_numpy_df(fea_test,encoded_label_test,"emb_avg_test.csv")
 
 
 
