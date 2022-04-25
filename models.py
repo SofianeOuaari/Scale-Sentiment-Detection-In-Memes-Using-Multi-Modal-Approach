@@ -398,7 +398,7 @@ class Multimodal():
 
 
 
-    def lstm_multi_embedding(self,tokenizer,input_arr_text,labels,input_arr_text_val,input_arr_img_val,labels_val,max_nb_words,number_labels,is_gpu_available):
+    def lstm_multi_embedding(self,tokenizer,input_arr_text,labels,input_arr_text_val,input_arr_img_val,labels_val,max_nb_words,number_labels,is_gpu_available,model_name="multiembedding_network_3.h5"):
 
         emb_glove=get_glove_embedding_glove(300,tokenizer,input_arr_text.shape[1])
         emb_fasttext=get_glove_embedding_fasttext(tokenizer,input_arr_text.shape[1])
@@ -431,11 +431,17 @@ class Multimodal():
 
         print(multi_embedding.summary())
 
-        es = EarlyStopping(monitor='val_loss',patience=5)
+        es = EarlyStopping(monitor='val_accuracy',patience=5)
         csv_logger = CSVLogger(f'logs_metrics/multiembedding_network_log_{time.time()}.csv', append=True, separator=',')
-        cp=ModelCheckpoint(filepath = "multiembedding_network.h5")
+        cp=ModelCheckpoint(filepath = model_name)
 
         multi_embedding.fit([X_embedded_glove,X_embedded_ft],labels,epochs=100,callbacks=[es,csv_logger,cp],validation_data=([X_embedded_glove_val,X_embedded_ft_val],labels_val))
+
+
+        x_avg_emb = Model([input_glove,input_ft],x_avg)
+
+        return x_avg_emb
+        
 
         
 
