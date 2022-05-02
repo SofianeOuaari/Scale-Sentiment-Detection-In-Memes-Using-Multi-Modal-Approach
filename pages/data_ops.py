@@ -1,5 +1,6 @@
 import base64
 import math
+from PIL import Image
 import time
 import streamlit as st 
 import pandas as pd
@@ -34,6 +35,8 @@ class FileDownloader(object):
 def app():
     st.markdown("<html><body><center><h1>Data Processing Operations</h1></center></body></html>",unsafe_allow_html=True)
     st.markdown("<html><body><center><p>In any data science/analysis and machine learning pipeline implementation, preprocessing the data is considered a core and essential step. In this section of the application, we offer to the user a set of automated tools to perform different type of processing operations applied on numerical data such as scaling/normalization, dimensionality reduction and selecting the best features for a given supervised task.</p></center></body></html>",unsafe_allow_html=True)
+
+    
     st.markdown("<html><body><h3>Please Upload your dataset to proceed</h3></body></html>",unsafe_allow_html=True)
     
     data = st.file_uploader("Upload a Dataset", type=["csv", "txt"])
@@ -189,6 +192,7 @@ def app():
                 download = FileDownloader(features_df_new.to_csv(),filename=f"selected_rfe_{feature_selection}",file_ext='csv').download()
 
             st.markdown("<html><body><h2>Dimensionality Reduction</h2></body></html>",unsafe_allow_html=True)
+            
             col1, col2,col3,col4 = st.columns(4)
 
             with col1: 
@@ -215,4 +219,4 @@ def app():
                 df_reduced=pd.DataFrame(dim_model.fit_transform(df_filter))
                 df_reduced[label_name]=y
                 st.dataframe(df_reduced) 
-                download = FileDownloader(features_df_new.to_csv(),filename=f"reduced_dimensions_{n_dimension}",file_ext='csv').download()
+                download = FileDownloader(df_reduced.to_csv(),filename=f"reduced_dimensions_{n_dimension}",file_ext='csv').download()
