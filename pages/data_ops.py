@@ -9,6 +9,9 @@ from sklearn.feature_selection import SelectKBest,chi2,f_regression,f_classif,RF
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier ,DecisionTreeRegressor
 from sklearn.ensemble import RandomForestClassifier,RandomForestRegressor
+from sklearn.decomposition import PCA,TruncatedSVD
+from sklearn.manifold import TSNE
+from sklearn.pipeline import Pipeline
 from xgboost import XGBClassifier,XGBRegressor
 
 
@@ -185,3 +188,31 @@ def app():
                 st.dataframe(features_df_new)
                 download = FileDownloader(features_df_new.to_csv(),filename=f"selected_rfe_{feature_selection}",file_ext='csv').download()
 
+            st.markdown("<html><body><h2>Dimensionality Reduction</h2></body></html>",unsafe_allow_html=True)
+            col1, col2,col3,col4 = st.columns(4)
+
+            with col1: 
+                pass
+            with col2: 
+                dim_choice=st.selectbox("Select Dimensionality Reduction Technique",("PCA","Truncated SVD","t-SNE"))
+            with col3:
+                n_dimension=st.number_input("Select Reduced Number of Dimensions",2,len(df_filter.columns)-1)
+            with col4: 
+                pass
+            pca_pipeline=Pipeline([('scaling', StandardScaler()), ('pca', PCA(n_components=n_dimension))])
+            svd_pipeline=Pipeline([('scaling', StandardScaler()), ('pca', TruncatedSVD(n_components=n_dimension))])
+            tsne_pipeline=Pipeline([('scaling', StandardScaler()), ('pca', TSNE(n_components=n_dimension))])
+            dim_models={"PCA":pca_pipeline,"Truncated SVD":svd_pipeline,"t-SNE":tsne_pipeline}
+            dim_model=dim_models[dim_choice]
+
+            if 'dimensionality_reduction' not in st.session_state: 
+                st.session_state.dimensionality_reduction=False
+            
+            def callback_dimensionality_reduction(): 
+                st.session_state.dimensionality_reduction=True
+            
+            if (st.button("Run Dimensionality Reduction",on_click=callback_dimensionality_reduction) or st.session_state.dimensionality_reduction):
+                df_reduced=pd.DataFrame(dim_model.fit_transform(df_filter))
+                df_reduced[label_name]=y
+                st.dataframe(df_reduced) 
+                download = FileDownloader(features_df_new.to_csv(),filename=f"reduced_dimensions_{n_dimension}",file_ext='csv').download()
