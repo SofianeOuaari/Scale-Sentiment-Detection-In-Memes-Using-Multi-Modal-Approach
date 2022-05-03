@@ -18,8 +18,8 @@ from imblearn.over_sampling import SMOTE,KMeansSMOTE,BorderlineSMOTE,SVMSMOTE
 
 
 
-file_names_train=["train_latent_autoencoder_3.csv","emb_avg_train.csv","residual_block_1_1_train.csv","residual_block_2_1_train.csv"]
-file_names_test=["test_latent_autoencoder_3.csv","emb_avg_test.csv","residual_block_1_1_test.csv","residual_block_2_1_test.csv"]
+file_names_train=["./train_latent_autoencoder_3.csv","./emb_avg_train.csv","./residual_block_1_1_train.csv","./residual_block_2_1_train.csv"]
+file_names_test=["./test_latent_autoencoder_3.csv","./emb_avg_test.csv","./residual_block_1_1_test.csv","./residual_block_2_1_test.csv"]
 
 
 
@@ -58,6 +58,7 @@ for file_name_train,file_name_test in zip(file_names_train,file_names_test):
         dict_stats["test_macro_f1"]=f1_score(y_test,y_pred,average="macro")
 
         root_name=file_name_train.replace(".csv","")
+        root_name=root_name.replace("./","")
         json_dict = open(f"{root_name}_{model_name}.json", "w")
         json.dump(dict_stats,json_dict)
         json_dict.close()
