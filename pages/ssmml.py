@@ -61,7 +61,7 @@ def app():
         print(img_arr.shape)
 
 
-        model_type=st.selectbox('Choose the Multi Modal Type',('Residual Network','Multi Embedding Network','Multi Color Spaces'))
+        model_type=st.selectbox('Choose the Multi Modal Type',('Residual Network','Multi Embedding Network'))
 
         prediction_button=st.button("Apply Inference")
         
