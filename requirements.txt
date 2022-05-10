@@ -10,6 +10,7 @@ nlpaug
 snowballstemmer
 stop_words
 gensim
+streamlit
 pytesseract
 snowballstemmer
 stop_words
