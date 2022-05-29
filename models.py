@@ -82,8 +82,6 @@ class Unimodal():
         
         predictions=Dense(number_labels,"softmax")(x)
 
-        #x.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
-
         model = Model(inputs = base_model.input, outputs = predictions)
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
 
@@ -101,8 +99,6 @@ class Unimodal():
         
         predictions=Dense(number_labels,"softmax")(x)
 
-        #x.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
-
         model = Model(inputs = base_model.input, outputs = predictions)
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
 
@@ -119,8 +115,6 @@ class Unimodal():
             x=Dense(32,"relu")(x)
         
         predictions=Dense(number_labels,"softmax")(x)
-
-        #x.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
 
         model = Model(inputs = base_model.input, outputs = predictions)
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
@@ -140,14 +134,10 @@ class Multimodal():
                 x_text=LSTM(100,recurrent_dropout=0.2,dropout=0.2,return_sequences=True)(x_text)
             else:
                 x_text=CuDNNLSTM(100,return_sequences=True)(x_text)
-            #model.add(CuDNNLSTM(100,return_sequences=True))
         if not is_gpu_available:
             x_text=LSTM(100)(x_text)
         else:
             x_text=CuDNNLSTM(100)(x_text)
-        '''for _ in range(number_dense_layers_text):
-            model.add(Dense(64,"relu"))
-            model.add(Dropout(0.2))'''
         
         input_cnn=Input(shape=input_arr_img.shape[1:])
 
@@ -174,7 +164,6 @@ class Multimodal():
         model=Model([input_text,input_cnn],output)
         
         print(model.summary())
-        #plot_model(model, to_file='multiple_inputs.png')
 
         model.compile(loss="sparse_categorical_crossentropy",optimizer="adam",metrics=["accuracy"])
         return model
@@ -229,11 +218,6 @@ class Multimodal():
         latent = Dense(64, activation='tanh')(encoded_h5)
         text_latent_dim=K.int_shape(latent)[1:]
         latent=Flatten()(latent)
-        
-
-        '''autoencoder = Model(input_i,output)
-
-        autoencoder.compile('adadelta','mse')'''
 
 
         ###### Image Encoding ######
@@ -255,13 +239,8 @@ class Multimodal():
         encoded = MaxPooling2D((2, 2), padding='same')(x)
         enc_h,enc_w,enc_channel=K.int_shape(encoded)[1:]
         encoded=Flatten()(encoded)
-        #assert False
 
         bimodal_latent=concatenate([latent,encoded])
-
-
-
-
 
         ### Text Decoding
         decoder=Dense(text_latent_dim[0]*text_latent_dim[1])(bimodal_latent)
@@ -295,19 +274,13 @@ class Multimodal():
         x = BatchNormalization()(x)
         decoded = Activation('sigmoid')(x)
 
-        '''autoencoder_img = Model(input_img, decoded)
-        autoencoder_img.compile(optimizer='adam', loss='binary_crossentropy')'''
         bimodal_autoencoder=Model([input_i,input_img],[output,decoded])
         bimodal_autoencoder.compile("adadelta","mse")
 
         print(bimodal_autoencoder.summary())
 
-
-        #emb.fit(input_arr_text,epochs=10,batch_size=256)
-        #autoencoder.fit(X_embedded,X_embedded,epochs=100,batch_size=256, validation_split=.1)
-        '''autoencoder_img.fit(input_arr_img, input_arr_img,verbose=1,batch_size=16,epochs=15,shuffle=True)
-        print(autoencoder_img.summary())'''
-        bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img],epochs=25)
+        es = EarlyStopping(monitor='val_loss',patience=5)
+        bimodal_autoencoder.fit([X_embedded,input_arr_img],[X_embedded,input_arr_img],callbacks=[es],epochs=25)
 
         #return autoencoder_img
         bimodal_encoder = Model([input_i,input_img], bimodal_latent)
@@ -431,7 +404,7 @@ class Multimodal():
 
         print(multi_embedding.summary())
 
-        es = EarlyStopping(monitor='val_accuracy',patience=5)
+        es = EarlyStopping(monitor='val_loss',patience=5)
         csv_logger = CSVLogger(f'logs_metrics/multiembedding_network_log_{time.time()}.csv', append=True, separator=',')
         cp=ModelCheckpoint(filepath = model_name)
 
